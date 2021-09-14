@@ -1,0 +1,92 @@
+
+server {
+	listen		443 ssl;
+	listen		[::]:443 ssl;
+
+    server_name phnguyen.42.fr;
+
+	ssl_protocols TLSv1.3;
+	ssl_certificate		/etc/ssl/private/inception.crt;
+	ssl_certificate_key	/etc/ssl/private/inception.key;
+
+	root /var/www/wordpress;
+	index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_intercept_errors    on;
+        fastcgi_pass                wordpress:9000;
+        fastcgi_param               SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param               HOST $http_host;
+    }
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
+server {
+	listen		8080 ssl;
+	listen		[::]:8080 ssl;
+
+    server_name phnguyen.42.fr;
+
+	ssl_protocols TLSv1.3;
+	ssl_certificate		/etc/ssl/private/inception.crt;
+	ssl_certificate_key	/etc/ssl/private/inception.key;
+
+	root /var/www/adminer;
+	index adminer.php;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_intercept_errors    on;
+        fastcgi_pass                adminer:9000;
+        fastcgi_param               SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param               SERVER_NAME phnguyen.42.fr;
+        fastcgi_param               HTTP_HOST phnguyen.42.fr;
+    }
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
+server {
+	listen		3000 ssl;
+	listen		[::]:3000 ssl;
+
+    server_name phnguyen.42.fr;
+
+	ssl_protocols TLSv1.3;
+	ssl_certificate		/etc/ssl/private/inception.crt;
+	ssl_certificate_key	/etc/ssl/private/inception.key;
+
+	root /;
+	index index.js;
+
+    location / {
+        proxy_pass                  http://mysite:3000/;
+    }
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}

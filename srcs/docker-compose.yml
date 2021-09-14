@@ -1,0 +1,150 @@
+
+version: "3"
+
+services:
+
+  mariadb:
+    build: ./requirements/mariadb
+    image: mariadb:custom
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD}"
+      MARIADB_USER: "${MARIADB_USER}"
+      MARIADB_PASSWORD: "${MARIADB_PASSWORD}"
+      MARIADB_DATABASE: "${MARIADB_DATABASE}"
+    networks:
+      - wp
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    build: ./requirements/wordpress
+    image: wordpress:custom
+    restart: always
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      WORDPRESS_DB_HOST: mariadb
+      WORDPRESS_DB_USER: "${MARIADB_USER}"
+      WORDPRESS_DB_PASSWORD: "${MARIADB_PASSWORD}"
+      WORDPRESS_DB_NAME: "${MARIADB_DATABASE}"
+      WP_REDIS_HOST: "${WP_REDIS_HOST}"
+    networks:
+      - wp
+    volumes:
+      - wp_data:/var/www/wordpress
+
+  nginx:
+    build: ./requirements/nginx
+    image: nginx:custom
+    restart: always
+    depends_on:
+      - wordpress
+    ports:
+      - "443:443"
+      - "3000:3000"
+      - "8080:8080"
+    networks:
+      - wp
+    volumes:
+      - wp_data:/var/www/wordpress
+      - adminer_data:/var/www/adminer
+
+  redis:
+    build: ./requirements/bonus/redis
+    image: redis:custom
+    restart: always
+    networks:
+      - wp
+    volumes:
+      - redis_data:/data
+
+  adminer:
+    build: ./requirements/bonus/adminer
+    image: adminer:custom
+    restart: always
+    depends_on:
+      - mariadb
+    networks:
+      - wp
+    volumes:
+      - adminer_data:/var/www/adminer
+
+  ftp:
+    build: ./requirements/bonus/ftp
+    image: ftp:custom
+    restart: always
+    depends_on:
+      - wordpress
+    environment:
+      USER: "${MARIADB_USER}"
+      PASSWORD: "${MARIADB_PASSWORD}"
+    networks:
+      - wp
+    ports:
+      - "21:21"
+      - "20:20"
+      - "20000-20009:20000-20009"
+    volumes:
+      - wp_data:/ftps_data
+
+  git:
+    build: ./requirements/bonus/git
+    image: git:custom
+    restart: always
+    networks:
+      - wp
+    ports:
+      - "22:22"
+    volumes:
+      - git_data:/git-server/repos
+      - git_key:/git-server/keys
+
+  mysite:
+    build: ./requirements/bonus/mysite
+    image: mysite:custom
+    restart: always
+    networks:
+      - wp
+
+networks:
+  wp:
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/db
+  wp_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/wp
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/redis
+  adminer_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/adminer
+  git_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/git
+  git_key:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${LOGIN}/data/git_key
